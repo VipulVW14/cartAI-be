@@ -8,13 +8,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const corsOptions = {
-  origin: '*', // Or specify a specific domain if needed
+  origin: 'https://cart-ai.netlify.app', // Specify your domain
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'], // Add more headers if needed
-  credentials: true, // Set to true if you need to send cookies or other credentials
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Set this to true if sending cookies or credentials
 };
 
-// Use CORS with the specified options
 app.use(cors(corsOptions));
 
 // Path to the cart data JSON file
