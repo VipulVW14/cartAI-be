@@ -124,10 +124,10 @@ app.post('/api/cart/delete', (req, res) => {
 // Seat purchase endpoint
 app.post('/api/cart/seatPurchase', (req, res) => {
   console.log('/api/cart/seatPurchase');
-  console.log(req.body);
+  console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
 
   try {
-    const { quantity, description } = req.body; // Extracting quantity and description from the request body
+    const { quantity, description } = req.body?.message?.toolCalls[0]?.function?.arguments; // Extracting quantity and description from the request body
 
     // Predefined seat purchase data
     const seatItem = { 
@@ -162,7 +162,6 @@ app.post('/api/cart/seatPurchase', (req, res) => {
 // Seat upgrade endpoint
 app.post('/api/cart/seatUpgrade', (req, res) => {
   console.log('/api/cart/seatUpgrade');
-  console.log(req.body);
 
   try {
     // Create a new seat upgrade item based on the custom data from the request
