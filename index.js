@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -43,22 +42,37 @@ app.get('/api/cart', (req, res) => {
   }
 });
 
-// Add an item to the cart
+// Add items to the cart
 app.post('/api/cart/add', (req, res) => {
+  console.log('/api/cart/add');
+  console.log(req.body);
+  console.log('Tool calls:');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
+  
   try {
-    const { id, name, price, quantity, image } = req.body?.message?.toolCalls[0]?.function?.arguments || req.body;
+    const items = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items; // Extracting the items from the request body
     const data = readCartData();
 
-    const itemIndex = data.items.findIndex((item) => item.id === id);
+    // Loop through the items and add them to the cart
+    items.forEach((item) => {
+      const { Id, Name, Price, Quantity, Image } = item;
 
-    if (itemIndex >= 0) {
-      // Item exists, update quantity (convert to number to ensure proper addition)
-      data.items[itemIndex].quantity += Number(quantity);
-    } else {
-      // Item does not exist, add new item (ensure quantity is a number)
-      data.items.push({ id, name, price, quantity: Number(quantity), image });
-    }
+      const itemIndex = data.items.findIndex((cartItem) => cartItem.id === Id);
+
+      if (itemIndex >= 0) {
+        // Item exists, update quantity (convert to number to ensure proper addition)
+        data.items[itemIndex].quantity += Number(Quantity);
+      } else {
+        // Item does not exist, add new item
+        data.items.push({ 
+          id: Id, 
+          name: Name, 
+          price: Number(Price), 
+          quantity: Number(Quantity), 
+          image: Image 
+        });
+      }
+    });
 
     writeCartData(data);
     res.json(data);
@@ -68,48 +82,115 @@ app.post('/api/cart/add', (req, res) => {
   }
 });
 
-// Remove an item or decrease its quantity
-app.post('/api/cart/remove', (req, res) => {
-  console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
-  try {
-    const { id, quantity } = req?.body?.message?.toolCalls[0]?.function?.arguments || req?.body;
-    const data = readCartData();
-
-    const itemIndex = data.items.findIndex((item) => item.id === id);
-
-    if (itemIndex >= 0) {
-      // Decrease quantity if greater than 1
-      if (data.items[itemIndex].quantity > 1) {
-        data.items[itemIndex].quantity -= 1;
-      } else {
-        // Remove item if quantity is 1
-        data.items.splice(itemIndex, 1);
-      }
-
-      writeCartData(data);
-    }
-
-    res.json(data);
-  } catch (error) {
-    console.error('Error removing item from cart:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-// Delete an item from the cart
+// Delete or decrease quantity of items from the cart
 app.post('/api/cart/delete', (req, res) => {
+  console.log('/api/cart/delete');
+  console.log(req.body);
+  console.log('Tool calls: ');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
+  
   try {
-    const { id } = req?.body?.message?.toolCalls[0]?.function?.arguments || req?.body ;
+    const itemsToDelete = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items; // Extracting the items to delete from the request body
     const data = readCartData();
 
-    const updatedItems = data.items.filter((item) => item.id !== id);
-    data.items = updatedItems;
+    itemsToDelete.forEach((item) => {
+      const { Id, Quantity } = item;
+
+      const itemIndex = data.items.findIndex((cartItem) => cartItem.id === Id);
+
+      if (itemIndex >= 0) {
+        // Decrease the quantity of the item
+        const currentQuantity = data.items[itemIndex].quantity;
+        const newQuantity = currentQuantity - Number(Quantity);
+
+        if (newQuantity > 0) {
+          // If quantity is greater than 0, update the quantity
+          data.items[itemIndex].quantity = newQuantity;
+        } else {
+          // If quantity is 0 or less, remove the item
+          data.items.splice(itemIndex, 1);
+        }
+      }
+    });
 
     writeCartData(data);
     res.json(data);
   } catch (error) {
     console.error('Error deleting item from cart:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Seat purchase endpoint
+app.post('/api/cart/seatPurchase', (req, res) => {
+  console.log('/api/cart/seatPurchase');
+  console.log(req.body);
+
+  try {
+    const { quantity, description } = req.body; // Extracting quantity and description from the request body
+
+    // Predefined seat purchase data
+    const seatItem = { 
+      id: 101, // Example ID for seat purchase
+      name: 'Tickets', // Example seat name
+      price: 23, // Example price per seat
+      image: 'https://i.postimg.cc/dtpyn6kc/DALL-E-2024-09-24-21-28-34-A-modern-logo-that-represents-a-ticket-specifically-a-courtside-ticket.webp', // Example image URL
+      quantity: Number(quantity), // Convert quantity to a number
+      description // Add description directly from the request body
+    };
+
+    const data = readCartData();
+
+    const itemIndex = data.items.findIndex((item) => item.id === seatItem.id);
+
+    if (itemIndex >= 0) {
+      // If the seat item exists, update the quantity
+      data.items[itemIndex].quantity += seatItem.quantity;
+    } else {
+      // If the seat item doesn't exist, add it to the cart
+      data.items.push(seatItem);
+    }
+
+    writeCartData(data);
+    res.json(data);
+  } catch (error) {
+    console.error('Error processing seat purchase:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Seat upgrade endpoint
+app.post('/api/cart/seatUpgrade', (req, res) => {
+  console.log('/api/cart/seatUpgrade');
+  console.log(req.body);
+
+  try {
+    // Create a new seat upgrade item based on the custom data from the request
+    const seatUpgradeItem = {
+      id: 102,
+      name: "Court Side Ticket",
+      price: 200, 
+      image: "https://i.postimg.cc/dtpyn6kc/DALL-E-2024-09-24-21-28-34-A-modern-logo-that-represents-a-ticket-specifically-a-courtside-ticket.webp",
+      quantity: 1, 
+      description: 'C1, C2, C3'
+    };
+
+    const data = readCartData();
+
+    const itemIndex = data.items.findIndex((item) => item.id === seatUpgradeItem.id);
+
+    if (itemIndex >= 0) {
+      // If the seat upgrade item exists, update the quantity
+      data.items[itemIndex].quantity += seatUpgradeItem.quantity;
+    } else {
+      // If the seat upgrade item doesn't exist, add it to the cart
+      data.items.push(seatUpgradeItem);
+    }
+
+    writeCartData(data);
+    res.json(data);
+  } catch (error) {
+    console.error('Error processing seat upgrade:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
