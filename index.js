@@ -197,7 +197,7 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
 let clients = [];
 
 // API to trigger the web popup
-app.post('/api/cart/show-web', (req, res) => {
+app.post('/api/show-web', (req, res) => {
   const url = 'https://americanairlinescenter.com/';
   
   // Notify all connected clients to show the popup
