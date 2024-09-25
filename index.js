@@ -215,6 +215,7 @@ app.get('/events', (req, res) => {
 
   // Add this client to the list of connected clients
   clients.push({ req, res });
+  console.log('Clients: '+ clients);
 
   // When the connection closes, remove the client
   req.on('close', () => {
