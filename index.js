@@ -45,7 +45,6 @@ app.get('/api/cart', (req, res) => {
 // Add items to the cart
 app.post('/api/cart/add', (req, res) => {
   console.log('/api/cart/add');
-  console.log(req.body);
   console.log('Tool calls:');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
   
@@ -85,7 +84,6 @@ app.post('/api/cart/add', (req, res) => {
 // Delete or decrease quantity of items from the cart
 app.post('/api/cart/delete', (req, res) => {
   console.log('/api/cart/delete');
-  console.log(req.body);
   console.log('Tool calls: ');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
   
@@ -212,12 +210,14 @@ app.get('/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', 
-    'https://voicedemo.soluperts.com')
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.flushHeaders();
 
   // Add this client to the list of connected clients
   clients.push({ req, res });
-  console.log('Clients: '+ clients);
+  console.log("Clients: ")
+  console.log(clients);
 
   // When the connection closes, remove the client
   req.on('close', () => {
