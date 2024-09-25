@@ -90,10 +90,10 @@ app.post('/api/cart/delete', (req, res) => {
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
   
   try {
-    const itemsToDelete = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items; // Extracting the items to delete from the request body
+    const itemsToDelete = req?.body?.message?.toolCalls[0]?.function?.arguments.Items || req?.body?.Items; // Extracting the items to delete from the request body
     const data = readCartData();
 
-    itemsToDelete.forEach((item) => {
+    itemsToDelete?.forEach((item) => {
       const { Id, Quantity } = item;
 
       const itemIndex = data.items.findIndex((cartItem) => cartItem.id === Id);
@@ -169,7 +169,7 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
       id: 102,
       name: "Court Side Ticket",
       price: 200, 
-      image: "https://i.postimg.cc/dtpyn6kc/DALL-E-2024-09-24-21-28-34-A-modern-logo-that-represents-a-ticket-specifically-a-courtside-ticket.webp",
+      image: "https://i.postimg.cc/FRBBtVSN/DALL-E-2024-09-25-14-09-11-A-sleek-premium-looking-courtside-ticket-logo-for-a-sporting-event-Th.webp",
       quantity: 1, 
       description: 'C1, C2, C3'
     };
@@ -192,6 +192,33 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
     console.error('Error processing seat upgrade:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
+});
+
+let clients = [];
+
+// API to trigger the web popup
+app.post('/api/cart/show-web', (req, res) => {
+  const url = 'https://americanairlinescenter.com/';
+  
+  // Notify all connected clients to show the popup
+  clients.forEach((client) => client.res.write(`data: ${JSON.stringify({ url })}\n\n`));
+
+  res.json({ message: 'Popup triggered successfully' });
+});
+
+// API to set up Server-Sent Events (SSE)
+app.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  // Add this client to the list of connected clients
+  clients.push({ req, res });
+
+  // When the connection closes, remove the client
+  req.on('close', () => {
+    clients = clients.filter(client => client.res !== res);
+  });
 });
 
 // Start the server
