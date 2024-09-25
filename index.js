@@ -198,6 +198,7 @@ let clients = [];
 
 // API to trigger the web popup
 app.post('/api/show-web', (req, res) => {
+  console.log('/api/show-web');
   const url = 'https://americanairlinescenter.com/';
   
   // Notify all connected clients to show the popup
