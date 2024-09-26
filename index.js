@@ -156,7 +156,7 @@ app.post('/api/cart/seatPurchase', (req, res) => {
 
     const cartData = readCartDataForSession(sessionId);
 
-    const itemIndex = cartData.items.findIndex((item) => item.id === seatItem.id);
+    const itemIndex = cartData.findIndex((item) => item.id === seatItem.id);
 
     if (itemIndex >= 0) {
       // If the seat item exists, update the quantity
@@ -194,7 +194,7 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
 
     const cartData = readCartDataForSession(sessionId);
 
-    const itemIndex = cartData.items.findIndex((item) => item.id === seatUpgradeItem.id);
+    const itemIndex = cartData.findIndex((item) => item.id === seatUpgradeItem.id);
 
     if (itemIndex >= 0) {
       // If the seat upgrade item exists, update the quantity
