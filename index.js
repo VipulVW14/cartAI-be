@@ -31,88 +31,103 @@ const writeCartData = (data) => {
   fs.writeFileSync(cartDataPath, JSON.stringify(data, null, 2));
 };
 
-// Get all items in the cart
-app.get('/api/cart', (req, res) => {
+// Function to read cart data for a specific session
+const readCartDataForSession = (sessionId) => {
+  const data = readCartData(); // Assume this reads the whole cart data structure
+  return data[sessionId] || [] ; // Return the cart for the specific session or an empty array if not found
+};
+
+// Function to write cart data for a specific session
+const writeCartDataForSession = (sessionId, cartData) => {
+  const data = readCartData(); // Read the entire data
+  data[sessionId] = cartData; // Update the specific session's cart
+  writeCartData(data); // Write back the entire cart data structure
+};
+
+// Get all items in the cart for a specific session
+app.get('/api/cart/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
   try {
-    const data = readCartData();
-    res.json(data);
+    const items = readCartDataForSession(sessionId);
+    res.json({ items });
   } catch (error) {
     console.error('Error reading cart data:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Add items to the cart
+// Add items to the cart for a specific session
 app.post('/api/cart/add', (req, res) => {
   console.log('/api/cart/add');
-  console.log('Tool calls:');
-  console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
+  console.log(req.body?.message?.toolCalls[0]?.function?.arguments.Items);
   
+  const sessionId = req.body.message.call.id; // Get sessionId from request
   try {
-    const items = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items; // Extracting the items from the request body
-    const data = readCartData();
+    const items = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items;
+    const existingItems = readCartDataForSession(sessionId);
 
-    // Loop through the items and add them to the cart
+    // Loop through the items and add them to the session cart
     items.forEach((item) => {
       const { Id, Name, Price, Quantity, Image } = item;
 
-      const itemIndex = data.items.findIndex((cartItem) => cartItem.id === Id);
+      const itemIndex = existingItems.findIndex((cartItem) => cartItem.id === Id);
 
       if (itemIndex >= 0) {
-        // Item exists, update quantity (convert to number to ensure proper addition)
-        data.items[itemIndex].quantity += Number(Quantity);
+        // Item exists, update quantity
+        existingItems[itemIndex].quantity += Number(Quantity);
       } else {
         // Item does not exist, add new item
-        data.items.push({ 
-          id: Id, 
-          name: Name, 
-          price: Number(Price), 
-          quantity: Number(Quantity), 
-          image: Image 
+        existingItems.push({
+          id: Id,
+          name: Name,
+          price: Number(Price),
+          quantity: Number(Quantity),
+          image: Image,
         });
       }
     });
 
-    writeCartData(data);
-    res.json(data);
+    // Save the updated items for the session
+    writeCartDataForSession(sessionId, existingItems);
+    res.json(existingItems);
   } catch (error) {
     console.error('Error adding item to cart:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Delete or decrease quantity of items from the cart
+// Delete or decrease quantity of items from the cart for a specific session
 app.post('/api/cart/delete', (req, res) => {
   console.log('/api/cart/delete');
-  console.log('Tool calls: ');
-  console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
+  console.log(req.body?.message?.toolCalls[0]?.function?.arguments.Items);
   
+  const sessionId = req.body.message.call.id; // Get sessionId from request
   try {
-    const itemsToDelete = req?.body?.message?.toolCalls[0]?.function?.arguments.Items || req?.body?.Items; // Extracting the items to delete from the request body
-    const data = readCartData();
+    const itemsToDelete = req?.body?.message?.toolCalls[0]?.function?.arguments.Items || req?.body?.Items;
+    const existingItems = readCartDataForSession(sessionId);
 
-    itemsToDelete?.forEach((item) => {
+    itemsToDelete.forEach((item) => {
       const { Id, Quantity } = item;
 
-      const itemIndex = data.items.findIndex((cartItem) => cartItem.id === Id);
+      const itemIndex = existingItems.findIndex((cartItem) => cartItem.id === Id);
 
       if (itemIndex >= 0) {
-        // Decrease the quantity of the item
-        const currentQuantity = data.items[itemIndex].quantity;
+        const currentQuantity = existingItems[itemIndex].quantity;
         const newQuantity = currentQuantity - Number(Quantity);
 
         if (newQuantity > 0) {
-          // If quantity is greater than 0, update the quantity
-          data.items[itemIndex].quantity = newQuantity;
+          // Update quantity
+          existingItems[itemIndex].quantity = newQuantity;
         } else {
-          // If quantity is 0 or less, remove the item
-          data.items.splice(itemIndex, 1);
+          // Remove item
+          existingItems.splice(itemIndex, 1);
         }
       }
     });
 
-    writeCartData(data);
-    res.json(data);
+    // Save the updated items for the session
+    writeCartDataForSession(sessionId, existingItems);
+    res.json(existingItems);
   } catch (error) {
     console.error('Error deleting item from cart:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -122,7 +137,9 @@ app.post('/api/cart/delete', (req, res) => {
 // Seat purchase endpoint
 app.post('/api/cart/seatPurchase', (req, res) => {
   console.log('/api/cart/seatPurchase');
-  console.log(req.body?.message?.toolCalls[0]?.function?.arguments);
+  
+  // Extract sessionId from the request
+  const sessionId = req.body.message.call.id;
 
   try {
     const { quantity, description } = req.body?.message?.toolCalls[0]?.function?.arguments; // Extracting quantity and description from the request body
@@ -137,20 +154,20 @@ app.post('/api/cart/seatPurchase', (req, res) => {
       description // Add description directly from the request body
     };
 
-    const data = readCartData();
+    const cartData = readCartDataForSession(sessionId);
 
-    const itemIndex = data.items.findIndex((item) => item.id === seatItem.id);
+    const itemIndex = cartData.items.findIndex((item) => item.id === seatItem.id);
 
     if (itemIndex >= 0) {
       // If the seat item exists, update the quantity
-      data.items[itemIndex].quantity += seatItem.quantity;
+      cartData.items[itemIndex].quantity += seatItem.quantity;
     } else {
       // If the seat item doesn't exist, add it to the cart
-      data.items.push(seatItem);
+      cartData.items.push(seatItem);
     }
 
-    writeCartData(data);
-    res.json(data);
+    writeCartDataForSession(sessionId, cartData); // Write back the updated cart for the session
+    res.json(cartData);
   } catch (error) {
     console.error('Error processing seat purchase:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -160,6 +177,9 @@ app.post('/api/cart/seatPurchase', (req, res) => {
 // Seat upgrade endpoint
 app.post('/api/cart/seatUpgrade', (req, res) => {
   console.log('/api/cart/seatUpgrade');
+
+  // Extract sessionId from the request
+  const sessionId = req.body.message.call.id;
 
   try {
     // Create a new seat upgrade item based on the custom data from the request
@@ -172,20 +192,20 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
       description: 'C1, C2, C3'
     };
 
-    const data = readCartData();
+    const cartData = readCartDataForSession(sessionId);
 
-    const itemIndex = data.items.findIndex((item) => item.id === seatUpgradeItem.id);
+    const itemIndex = cartData.items.findIndex((item) => item.id === seatUpgradeItem.id);
 
     if (itemIndex >= 0) {
       // If the seat upgrade item exists, update the quantity
-      data.items[itemIndex].quantity += seatUpgradeItem.quantity;
+      cartData.items[itemIndex].quantity += seatUpgradeItem.quantity;
     } else {
       // If the seat upgrade item doesn't exist, add it to the cart
-      data.items.push(seatUpgradeItem);
+      cartData.items.push(seatUpgradeItem);
     }
 
-    writeCartData(data);
-    res.json(data);
+    writeCartDataForSession(sessionId, cartData); // Write back the updated cart for the session
+    res.json(cartData);
   } catch (error) {
     console.error('Error processing seat upgrade:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -193,7 +213,6 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
 });
 
 let clients = [];
-
 // API to trigger the web popup
 app.post('/api/show-web', (req, res) => {
   console.log('/api/show-web');
