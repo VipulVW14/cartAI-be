@@ -160,10 +160,10 @@ app.post('/api/cart/seatPurchase', (req, res) => {
 
     if (itemIndex >= 0) {
       // If the seat item exists, update the quantity
-      cartData.items[itemIndex].quantity += seatItem.quantity;
+      cartData[itemIndex].quantity += seatItem.quantity;
     } else {
       // If the seat item doesn't exist, add it to the cart
-      cartData.items.push(seatItem);
+      cartData.push(seatItem);
     }
 
     writeCartDataForSession(sessionId, cartData); // Write back the updated cart for the session
@@ -198,10 +198,10 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
 
     if (itemIndex >= 0) {
       // If the seat upgrade item exists, update the quantity
-      cartData.items[itemIndex].quantity += seatUpgradeItem.quantity;
+      cartData[itemIndex].quantity += seatUpgradeItem.quantity;
     } else {
       // If the seat upgrade item doesn't exist, add it to the cart
-      cartData.items.push(seatUpgradeItem);
+      cartData.push(seatUpgradeItem);
     }
 
     writeCartDataForSession(sessionId, cartData); // Write back the updated cart for the session
