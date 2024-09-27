@@ -61,7 +61,8 @@ app.post('/api/cart/add', (req, res) => {
   console.log('/api/cart/add');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments.Items);
   
-  const sessionId = req.body.message.call.id; // Get sessionId from request
+  const sessionId = req.body?.message?.call?.id || req.body?.sessionId; // Get sessionId from request
+  
   try {
     const items = req.body?.message?.toolCalls[0]?.function?.arguments.Items || req.body.Items;
     const existingItems = readCartDataForSession(sessionId);
@@ -101,7 +102,8 @@ app.post('/api/cart/delete', (req, res) => {
   console.log('/api/cart/delete');
   console.log(req.body?.message?.toolCalls[0]?.function?.arguments.Items);
   
-  const sessionId = req.body.message.call.id; // Get sessionId from request
+  const sessionId = req.body?.message?.call?.id || req.body?.sessionId; // Get sessionId from request
+  
   try {
     const itemsToDelete = req?.body?.message?.toolCalls[0]?.function?.arguments.Items || req?.body?.Items;
     const existingItems = readCartDataForSession(sessionId);
@@ -139,8 +141,8 @@ app.post('/api/cart/seatPurchase', (req, res) => {
   console.log('/api/cart/seatPurchase');
   
   // Extract sessionId from the request
-  const sessionId = req.body.message.call.id;
-
+  const sessionId = req.body?.message?.call?.id || req.body?.sessionId; // Get sessionId from request
+  
   try {
     const { quantity, description } = req.body?.message?.toolCalls[0]?.function?.arguments; // Extracting quantity and description from the request body
 
@@ -179,7 +181,7 @@ app.post('/api/cart/seatUpgrade', (req, res) => {
   console.log('/api/cart/seatUpgrade');
 
   // Extract sessionId from the request
-  const sessionId = req.body.message.call.id;
+  const sessionId = req.body?.message?.call?.id || req.body?.sessionId; // Get sessionId from request
 
   try {
     // Create a new seat upgrade item based on the custom data from the request
