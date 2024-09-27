@@ -44,16 +44,39 @@ const writeCartDataForSession = (sessionId, cartData) => {
   writeCartData(data); // Write back the entire cart data structure
 };
 
-// Get all items in the cart for a specific session
-app.get('/api/cart/:sessionId', (req, res) => {
+// Get all items in the cart for a specific session using SSE
+app.get('/api/cart/sse/:sessionId', (req, res) => {
   const { sessionId } = req.params;
-  try {
-    const items = readCartDataForSession(sessionId);
-    res.json({ items });
-  } catch (error) {
-    console.error('Error reading cart data:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
+
+  // Set headers for SSE
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.flushHeaders();
+
+  const sendCartData = () => {
+    try {
+      const items = readCartDataForSession(sessionId);
+      res.write(`data: ${JSON.stringify({ items })}\n\n`);
+    } catch (error) {
+      console.error('Error reading cart data:', error);
+      res.write(`data: ${JSON.stringify({ message: 'Internal server error' })}\n\n`);
+    }
+  };
+
+  // Send initial data
+  sendCartData();
+
+  // Set up interval to send updates every 5 seconds
+  const intervalId = setInterval(sendCartData, 5000);
+
+  // Clean up when the connection is closed
+  req.on('close', () => {
+    clearInterval(intervalId);
+    res.end();
+  });
 });
 
 // Add items to the cart for a specific session
